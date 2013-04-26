@@ -109,14 +109,14 @@ PRODUCT_PACKAGES += \
 	gps.msm8960
 
 # NFC Support or No Support
-ifneq ($(NO_NFC_MOTO_MSM8960),true)
+ifeq ($(NO_NFC_MOTO_MSM8960),true)
 
 # NFCEE access control
-ifeq ($(TARGET_BUILD_VARIANT),user)
-    NFCEE_ACCESS_PATH := $(LOCAL_PATH)/config/nfcee_access.xml
-else
-    NFCEE_ACCESS_PATH := $(LOCAL_PATH)/config/nfcee_access_debug.xml
-endif
+  ifeq ($(TARGET_BUILD_VARIANT),user)
+      NFCEE_ACCESS_PATH := $(LOCAL_PATH)/config/nfcee_access.xml
+  else
+      NFCEE_ACCESS_PATH := $(LOCAL_PATH)/config/nfcee_access_debug.xml
+  endif
 
 PRODUCT_COPY_FILES += $(NFCEE_ACCESS_PATH):system/etc/nfcee_access.xml
 
