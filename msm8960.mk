@@ -115,26 +115,6 @@ PRODUCT_PACKAGES += \
 	libgps.utils \
 	gps.msm8960
 
-<<<<<<< HEAD
-# NFCEE access control
-ifeq ($(TARGET_BUILD_VARIANT),user)
-      NFCEE_ACCESS_PATH := $(LOCAL_PATH)/config/nfcee_access.xml
-else
-      NFCEE_ACCESS_PATH := $(LOCAL_PATH)/config/nfcee_access_debug.xml
-endif
-
-PRODUCT_COPY_FILES += $(NFCEE_ACCESS_PATH):system/etc/nfcee_access.xml
-
-PRODUCT_PACKAGES += \
-	nfc.msm8960 \
-    libnfc \
-    libnfc_jni \
-    Nfc \
-    Tag \
-    com.android.nfc_extras
-
-=======
->>>>>>> d090d916c1ae815c4bd663fa36e042f409160dee
 # Misc
 PRODUCT_PACKAGES += \
     com.android.future.usb.accessory
