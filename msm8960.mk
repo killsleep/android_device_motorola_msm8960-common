@@ -30,9 +30,6 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.software.sip.voip.xml:system/etc/permissions/android.software.sip.voip.xml \
     frameworks/native/data/etc/android.hardware.sensor.accelerometer.xml:system/etc/permissions/android.hardware.sensor.accelerometer.xml \
     frameworks/native/data/etc/android.hardware.sensor.compass.xml:system/etc/permissions/android.hardware.sensor.compass.xml \
-    frameworks/base/nfc-extras/com.android.nfc_extras.xml:system/etc/permissions/com.android.nfc_extras.xml \
-    frameworks/native/data/etc/android.hardware.nfc.xml:system/etc/permissions/android.hardware.nfc.xml \
-    frameworks/native/data/etc/com.nxp.mifare.xml:system/etc/permissions/com.nxp.mifare.xml \
     frameworks/native/data/etc/android.hardware.telephony.gsm.xml:system/etc/permissions/android.hardware.telephony.gsm.xml \
     frameworks/native/data/etc/android.hardware.telephony.cdma.xml:system/etc/permissions/android.hardware.telephony.cdma.xml
 
@@ -96,7 +93,7 @@ PRODUCT_PACKAGES += charger charger_res_images
 # QRNGD
 PRODUCT_PACKAGES += qrngd
 
-#bluetooth
+# Bluetooth
 PRODUCT_PACKAGES += \
             hciconfig \
             hcitool
@@ -118,6 +115,7 @@ PRODUCT_PACKAGES += \
 	libgps.utils \
 	gps.msm8960
 
+<<<<<<< HEAD
 # NFCEE access control
 ifeq ($(TARGET_BUILD_VARIANT),user)
       NFCEE_ACCESS_PATH := $(LOCAL_PATH)/config/nfcee_access.xml
@@ -135,6 +133,8 @@ PRODUCT_PACKAGES += \
     Tag \
     com.android.nfc_extras
 
+=======
+>>>>>>> d090d916c1ae815c4bd663fa36e042f409160dee
 # Misc
 PRODUCT_PACKAGES += \
     com.android.future.usb.accessory
