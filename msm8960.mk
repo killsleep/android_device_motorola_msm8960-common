@@ -287,8 +287,6 @@ PRODUCT_PROPERTY_OVERRIDES += \
 
 # Radio and Telephony
 PRODUCT_PROPERTY_OVERRIDES += \
-    rild.libpath=/system/lib/libril-qc-qmi-1.so \
-    ril.subscription.types=NV,RUIM \
     keyguard.no_require_sim=true \
     ro.use_data_netmgrd=true \
     ro.ril.transmitpower=true \
