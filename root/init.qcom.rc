@@ -468,7 +468,7 @@ service ril-daemon1 /system/bin/rild -c 1
     socket rild-debug1 stream 660 radio system
     user root
     disabled
-    group radio cache inet misc audio sdcard_rw qcom_oncrpc diag
+    group radio cache inet misc audio sdcard_r sdcard_rw qcom_oncrpc diag qcom_diag log
 
 # MOT: used only on Qualcomm Fluid target
 #service profiler_daemon /system/bin/profiler_daemon
@@ -479,7 +479,7 @@ service ril-daemon1 /system/bin/rild -c 1
 
 # daemon will drop to user/group system/media_rw after initializing
 # underlying files in /data/media will be created with user and group media_rw (1023)
-service sdcard /system/bin/sdcard /data/media /mnt/shell/emulated 1023 1023
+    service sdcard /system/bin/sdcard /data/media 1023 1023
     class late_start
     disabled
 
