@@ -35,32 +35,35 @@ service qcamerasvr /system/bin/logwrapper /system/bin/qcamerasrvwrapper.sh
     user media
     group system camera inet input graphics
 
+on early-init
+    # Create PDS mount point
+    mkdir /pds 0755 root root
+    mkdir /firmware 0771 system system
+    mkdir /persist 0771 system system
 
-on init
-   mkdir /pds 0755 root root
-   mkdir /firmware 0771 system system
-   mkdir /persist 0771 system system
+on early-init
+    # for backwards compatibility
+    export EXTERNAL_STORAGE /storage/sdcard0
+    mkdir /storage 0050 system sdcard_r
+    mkdir /storage/sdcard0 0000 system system
+    symlink /storage/sdcard0 /sdcard
+    symlink /storage/sdcard0 /mnt/sdcard
 
-   mkdir /mnt/shell/emulated 0700 shell shell
-   mkdir /storage 0550 system sdcard_r
-   mkdir /storage/emulated 0555 root root
-   mkdir /storage/sdcard1 0000 system system
+on early-init
+    symlink /data/tombstones /tombstones
+    export SECONDARY_STORAGE /storage/sdcard1
+    export ANDROID_PRINTF_LOG threadtime
+    mkdir /storage/sdcard1 0000 system system
+    symlink /storage/sdcard1 /mnt/external1
 
-   export EXTERNAL_STORAGE /storage/emulated/legacy
-   export SECONDARY_STORAGE /storage/sdcard1
-   export EMULATED_STORAGE_SOURCE /mnt/shell/emulated
-   export EMULATED_STORAGE_TARGET /storage/emulated
-
-   # for backwards compatibility
-   symlink /storage/emulated/legacy /sdcard
-   symlink /storage/emulated/legacy /mnt/sdcard
-   symlink /storage/emulated/legacy /storage/sdcard0
-   symlink /mnt/shell/emulated/0 /storage/emulated/legacy
-   symlink /storage/sdcard1 /extSdCard
-   symlink /storage/sdcard1 /mnt/extSdCard
-   symlink /storage/usbdisk0 /usbdisk0
-   symlink /storage/usbdisk0 /mnt/usbdisk0
-
+on early-init
+    # for backwards compatibility
+    export EXTERNAL_STORAGE /storage/sdcard0
+    mkdir /storage 0050 system sdcard_r
+    mkdir /storage/sdcard0 0000 system system
+    symlink /storage/sdcard0 /sdcard
+    symlink /storage/sdcard0 /mnt/sdcard
+	
 # Mount Points for External Storage Devices
     mkdir /storage/usbdisk_1.1.1 0755 system system
     mkdir /storage/usbdisk_1.0 0755 system system
@@ -73,12 +76,12 @@ on init
     mkdir /storage/usbdisk_1.7 0755 system system
 
 # Mount Points for remote storage devices
-    mkdir /storage/rfs0 0755 system system
-    mkdir /storage/rfs1 0755 system system
-    mkdir /storage/rfs2 0755 system system
+    mkdir /storage/rfs0  0755 system system
+    mkdir /storage/rfs1  0755 system system
+    mkdir /storage/rfs2  0755 system system
 
 # Write the CDROM Block Device Path into the sysfs
-   write /sys/class/android_usb/android0/cdrom_blkdev "/dev/block/platform/msm_sdcc.1/by-name/cdrom"
+    write /sys/class/android_usb/android0/cdrom_blkdev "/dev/block/platform/msm_sdcc.1/by-name/cdrom"
 
 # For Authentec VPN: route packets over bridge interface before processing
     write /proc/sys/net/bridge/bridge-nf-call-arptables 0
@@ -129,8 +132,7 @@ on post-fs
     chmod 755 /system/etc/init.qcom.post_boot.sh
     chmod 755 /system/etc/init.qcom.sdio.sh
     chmod 755 /system/bin/qcamerasrvwrapper.sh
- 
-    symlink /data/tombstones /tombstones
+
     mkdir /tombstones/modem 0771 system system
     mkdir /tombstones/lpass 0771 system system
     mkdir /tombstones/wcnss 0771 system system
