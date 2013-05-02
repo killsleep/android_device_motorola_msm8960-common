@@ -34,18 +34,29 @@ service qcamerasvr /system/bin/logwrapper /system/bin/qcamerasrvwrapper.sh
     class late_start
     user media
     group system camera inet input graphics
-
-on init
-    mkdir /firmware 0771 system system
-    symlink /data/tombstones /tombstones
-    mkdir /persist 0771 system system
-    export SECONDARY_STORAGE /storage/sdcard0
-    export ANDROID_PRINTF_LOG threadtime
-    mkdir /storage/sdcard0 0000 system system
-    symlink /storage/sdcard1 /mnt/external1
-    # Create PDS mount point
-    mkdir /pds 0755 root root
 	
+on init
+   mkdir /pds 0755 root root
+   mkdir /firmware 0771 system system
+   mkdir /persist 0771 system system
+
+   mkdir /storage 0550 system sdcard_r
+   mkdir /storage/sdcard1 0000 system system
+   mkdir /storage/sdcard0 0000 system system
+   mkdir /sd-ext 0550 system sdcard_r
+   
+   export EXTERNAL_STORAGE /storage/sdcard1
+   export SECONDARY_STORAGE /storage/sdcard0
+   export EMULATED_STORAGE_SOURCE /mnt/sdcard
+   export EMULATED_STORAGE_TARGET /storage
+
+   # for backwards compatibility
+   symlink /storage/sdcard1 /sdcard
+   symlink /storage/sdcard1 /mnt/sdcard
+   symlink /storage/sdcard0 /mnt/internal   
+   symlink /mnt/sdcard/0 /storage/sdcard1
+   symlink /storage/sdcard1 /sd-ext
+
 # Mount Points for External Storage Devices
     mkdir /mnt/usbdisk_1.1.1 0755 system system
     mkdir /mnt/usbdisk_1.0 0755 system system
@@ -115,6 +126,7 @@ on post-fs
     chmod 755 /system/etc/init.qcom.sdio.sh
     chmod 755 /system/bin/qcamerasrvwrapper.sh
 
+    symlink /data/tombstones /tombstones
     mkdir /tombstones/modem 0771 system system
     mkdir /tombstones/lpass 0771 system system
     mkdir /tombstones/wcnss 0771 system system
