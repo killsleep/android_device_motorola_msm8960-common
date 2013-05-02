@@ -84,8 +84,8 @@ PRODUCT_PACKAGES += qrngd
 
 # Bluetooth
 PRODUCT_PACKAGES += \
-            hciconfig \
-            hcitool
+    hciconfig \
+    hcitool
 
 PRODUCT_COPY_FILES += $(LOCAL_PATH)/modules/bluetooth/bt_vendor.conf:system/etc/bluetooth/bt_vendor.conf
 
@@ -303,5 +303,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PROPERTY_OVERRIDES += \
     wifi.interface=wlan0 \
     wifi.supplicant_scan_interval=30
+
+# USB mass_storage
+    persist.sys.usb.config=mass_storage,adb 
 
 PRODUCT_BUILD_PROP_OVERRIDES += BUILD_UTC_DATE=0
