@@ -55,7 +55,7 @@ on init
    symlink /storage/sdcard1 /mnt/sdcard
    symlink /storage/sdcard0 /mnt/internal   
    symlink /mnt/sdcard/0 /storage/sdcard1
-   symlink /storage/sdcard1 /sd-ext
+   symlink /storage/sdcard0 /sd-ext
 
 # Mount Points for External Storage Devices
     mkdir /mnt/usbdisk_1.1.1 0755 system system
