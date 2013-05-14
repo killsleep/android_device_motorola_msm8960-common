@@ -131,8 +131,10 @@ $(LOCAL_PATH)/root/init.mmi.usb.sh:root/init.mmi.usb.sh \
 $(LOCAL_PATH)/root/init.msm.rc:root/init.msm.rc \
 $(LOCAL_PATH)/root/init.qcom.class_core.sh:root/init.qcom.class_core.sh \
 $(LOCAL_PATH)/root/init.qcom.class_main.sh:root/init.qcom.class_main.sh \
+$(LOCAL_PATH)/root/init.qcom.early_boot.sh:root/init.qcom.early_boot.sh \
 $(LOCAL_PATH)/root/init.qcom.rc:root/init.qcom.rc \
 $(LOCAL_PATH)/root/init.qcom.sh:root/init.qcom.sh \
+$(LOCAL_PATH)/root/init.qcom.syspart_fixup.sh:root/init.qcom.syspart_fixup.sh \
 $(LOCAL_PATH)/root/init.target.rc:root/init.target.rc \
 $(LOCAL_PATH)/root/ueventd.qcom.rc:root/ueventd.qcom.rc
 

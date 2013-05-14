@@ -36,6 +36,36 @@ usb_action=`getprop usb.mmi-usb-sh.action`
 echo "mmi-usb-sh: action = \"$usb_action\""
 sys_usb_config=`getprop sys.usb.config`
 
+tcmd_ctrl_adb ()
+{
+    ctrl_adb=`getprop tcmd.ctrl_adb`
+    echo "mmi-usb-sh: tcmd.ctrl_adb = $ctrl_adb"
+    case "$ctrl_adb" in
+        "0")
+            if [[ "$sys_usb_config" == *adb* ]]
+            then
+                # *** ALWAYS expecting adb at the end ***
+                new_usb_config=${sys_usb_config/,adb/}
+                echo "mmi-usb-sh: disabling adb ($new_usb_config)"
+                setprop sys.usb.config $new_usb_config
+                setprop persist.factory.allow_adb 0
+            fi
+        ;;
+        "1")
+            if [[ "$sys_usb_config" != *adb* ]]
+            then
+                # *** ALWAYS expecting adb at the end ***
+                new_usb_config="$sys_usb_config,adb"
+                echo "mmi-usb-sh: enabling adb ($new_usb_config)"
+                setprop sys.usb.config $new_usb_config
+                setprop persist.factory.allow_adb 1
+            fi
+        ;;
+    esac
+
+    exit 0
+}
+
 tcmd_ctrl_diag ()
 {
     ctrl_diag=`getprop tcmd.ctrl_diag`
@@ -65,6 +95,9 @@ tcmd_ctrl_diag ()
 
 case "$usb_action" in
     "")
+    ;;
+    "tcmd.ctrl_adb")
+        tcmd_ctrl_adb
     ;;
     "tcmd.ctrl_diag")
         case "$sys_usb_config" in
@@ -111,7 +144,6 @@ esac
 #
 # Allow USB enumeration with default PID/VID
 #
-echo 1  > /sys/class/android_usb/f_mass_storage/lun/nofua
 usb_config=`getprop persist.sys.usb.config`
 bootmode=`getprop ro.bootmode`
 buildtype=`getprop ro.build.type`
@@ -120,14 +152,22 @@ case "$bootmode" in
         setprop persist.sys.usb.config diag,serial_smd,serial_tty,rmnet,usbnet,adb
     ;;
     "factory" )
-        setprop persist.sys.usb.config usbnet
+        allow_adb=`getprop persist.factory.allow_adb`
+        case "$allow_adb" in
+            "1")
+                setprop persist.sys.usb.config usbnet,adb
+            ;;
+            *)
+                setprop persist.sys.usb.config usbnet
+            ;;
+        esac
     ;;
     "qcom" )
         setprop persist.sys.usb.config diag,serial_smd,serial_tty,rmnet_bam,mass_storage,adb
     ;;
     * )
         case "$usb_config" in
-            "ptp,adb" | "mtp,adb" | "mass_storage,adb" | "ptp" | "mtp" | "mass_storage" )
+            "ptp,adb" | "mtp,adb" | "ptp" | "mtp" )
             ;;
             *)
                 case "$buildtype" in
@@ -142,3 +182,54 @@ case "$bootmode" in
         esac
     ;;
 esac
+
+# Make sure MAXX products have correct name programmed
+# The "adjusted" name needs to be exposed in ro.boot.modelno
+modelno=`getprop ro.boot.modelno`
+model=`getprop ro.product.model`
+typeset -i battcap
+typeset -i battmaxx=3000
+need_update=1
+battcap=`cat /sys/bus/platform/devices/mmi-battery.0/capacity`
+# value not empty implies we have "maxx" capacity
+# so check if the value has "MAXX" substring in it
+if [ ! -z "$modelno" ]; then
+	case $modelno in
+	*MAXX*) # model indicates MAXX battery
+		if [ $battcap -ge $battmaxx ]; then
+			need_update=0
+		fi
+		;;
+	*) 	# regular model indicated
+		if [ $battcap -lt $battmaxx ]; then
+			need_update=0
+		fi
+		;;
+	esac
+fi
+# value was non-empty but incorrect
+# try to update it, loading UTAG module as needed
+if [ "$need_update" == "1" ]; then
+	if [ ! -d /proc/config ]; then
+		insmod /system/lib/modules/config.ko
+		need_cleanup=1
+	fi
+	# if we got UTAG interface, let's write correct value
+	if [ -d /proc/config ]; then
+		if [ $battcap -ge $battmaxx ]; then
+		# update the UTAG, it will get into ro.boot.modelno on next boot.
+		# can't use spaces - BL will chop off, so replace with underscores
+		# insert _MAXX before the last underscore so DROID_RAZR_HD becomes
+		# DROID_RAZR_MAXX_HD
+			a=${model// /_}
+			b=${a%_*}
+			c=${a##$b}
+		        echo "${b}_MAXX${c}" > /proc/config/model/ascii
+		else
+		        echo "${model// /_}" > /proc/config/model/ascii
+		fi
+	fi
+	if [ "$need_cleanup" == "1" ]; then
+		rmmod config.ko
+	fi
+fi

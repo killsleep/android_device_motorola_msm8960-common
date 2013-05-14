@@ -26,7 +26,8 @@
 #
 
 # use init.mmi.usb.rc
-# import init.qcom.usb.rc
+#import init.qcom.usb.rc
+import init.target.rc
 
 on init
     # Set permissions for persist partition
@@ -35,6 +36,17 @@ on init
 on early-boot
     # set RLIMIT_MEMLOCK to 64MB
     setrlimit 8 67108864 67108864
+    exec /system/bin/sh /init.qcom.early_boot.sh
+    exec /system/bin/sh /init.qcom.syspart_fixup.sh
+
+on early-init
+    # for backwards compatibility
+    export EXTERNAL_STORAGE /storage/sdcard0
+    mkdir /storage 0050 system sdcard_r
+    mkdir /storage/sdcard0 0000 system system
+    symlink /storage/sdcard0 /sdcard
+    symlink /storage/sdcard0 /mnt/sdcard
+
 
 on boot
     exec system/bin/btnvtool -O
@@ -53,11 +65,8 @@ on boot
     chown bluetooth bluetooth /sys/devices/platform/msm_serial_hs.0/clock
     chmod 0660 /sys/devices/platform/msm_serial_hs.0/clock
 
-    # bluetooth LPM
-    chmod 0220 /proc/bluetooth/sleep/lpm
-    chmod 0220 /proc/bluetooth/sleep/btwrite
-    chown bluetooth net_bt_stack /proc/bluetooth/sleep/lpm
-    chown bluetooth net_bt_stack /proc/bluetooth/sleep/btwrite
+    chmod 0660 /dev/ttyHS2
+    chown bluetooth bluetooth /dev/ttyHS2
 
     #Create QMUX deamon socket area
     mkdir /dev/socket/qmux_radio 0770 radio radio
@@ -66,39 +75,37 @@ on boot
     chmod 2770 /dev/socket/qmux_audio
     mkdir /dev/socket/qmux_bluetooth 0770 bluetooth bluetooth
     chmod 2770 /dev/socket/qmux_bluetooth
+    mkdir /dev/socket/qmux_gps 0770 gps gps
+    chmod 2770 /dev/socket/qmux_gps
+
+    # Allow QMUX daemon to assign port open wait time
+    chown radio radio /sys/devices/virtual/hsicctl/hsicctl0/modem_wait
 
     setprop wifi.interface wlan0
 
+    setprop ro.telephony.call_ring.multiple false
+
     #Set SUID bit for usbhub
-    # chmod 4755 /system/bin/usbhub
-    # chmod 755 /system/bin/usbhub_init
+    chmod 4755 /system/bin/usbhub
+    chmod 755 /system/bin/usbhub_init
 
     #Remove SUID bit for iproute2 ip tool
     chmod 0755 /system/bin/ip
 
-    #port-bridge
-    chmod 0660 /dev/smd0
-    chown system system /dev/smd0
-
-    #BT DUN port-bridge
-    chmod 0660 /dev/smd7
-    chown bluetooth bluetooth /dev/smd7
 
     chmod 0444 /sys/devices/platform/msm_hsusb/gadget/usb_state
 
     # create symlink for fb1 as HDMI
     symlink /dev/graphics/fb1 /dev/graphics/hdmi
 
-    # Remove write permissions to video related nodes
+    # setup permissions for fb1 related nodes
+    chown system graphics /sys/class/graphics/fb1/hpd
     chmod 0664 /sys/devices/virtual/graphics/fb1/hpd
     chmod 0664 /sys/devices/virtual/graphics/fb1/video_mode
     chmod 0664 /sys/devices/virtual/graphics/fb1/format_3d
-    chmod 0664 /sys/devices/virtual/graphics/fb1/hdcp_en
 
     # Change owner and group for media server and surface flinger
     chown system system /sys/devices/virtual/graphics/fb1/format_3d
-    chown system system /sys/devices/virtual/graphics/fb1/hpd
-    chown system system /sys/devices/virtual/graphics/fb1/hdcp_en
 
     #For bridgemgr daemon to inform the USB driver of the correct transport
     chown radio radio /sys/class/android_usb/f_rmnet_smd_sdio/transport
@@ -126,13 +133,29 @@ on boot
     write /proc/sys/net/ipv6/conf/rmnet_sdio5/accept_ra 2
     write /proc/sys/net/ipv6/conf/rmnet_sdio6/accept_ra 2
     write /proc/sys/net/ipv6/conf/rmnet_sdio7/accept_ra 2
+    write /proc/sys/net/ipv6/conf/rmnet_usb0/accept_ra 2
+    write /proc/sys/net/ipv6/conf/rmnet_usb1/accept_ra 2
+    write /proc/sys/net/ipv6/conf/rmnet_usb2/accept_ra 2
+    write /proc/sys/net/ipv6/conf/rmnet_usb3/accept_ra 2
+
+    # To prevent out of order acknowledgements from making
+    # connection tracking to treat them as not belonging to
+    # the connection they belong to.
+    # Otherwise, a weird issue happens in which some long
+    # connections on high-throughput links get dropped when
+    # an ack packet comes out of order
+    write /proc/sys/net/netfilter/nf_conntrack_tcp_be_liberal 1
 
 # import cne init file
 on post-fs
-    export_rc /persist/init.cne.rc
+# Service not used
+#    exec export_rc /persist/init.cne.rc
 
 # msm specific files that need to be created on /data
 on post-fs-data
+    # we will remap this as /mnt/sdcard with the sdcard fuse tool
+    mkdir /data/media 0775 media_rw media_rw
+    chown media_rw media_rw /data/media
 
     mkdir /data/misc/bluetooth 0770 bluetooth bluetooth
 
@@ -140,7 +163,6 @@ on post-fs-data
     mkdir /data/misc/wifi 0770 wifi wifi
     mkdir /data/misc/wifi/sockets 0770 wifi wifi
     mkdir /data/misc/wifi/wpa_supplicant 0770 wifi wifi
-    mkdir /data/misc/wifi/hostapd 0770 wifi wifi
     mkdir /data/misc/dhcp 0770 dhcp dhcp
     chown dhcp dhcp /data/misc/dhcp
 
@@ -164,16 +186,14 @@ on post-fs-data
 
     #Create the symlink to qcn wpa_supplicant folder for ar6000 wpa_supplicant
     mkdir /data/system 0775 system system
-    rm /data/system/wpa_supplicant
-    #symlink /data/misc/wifi/wpa_supplicant /data/system/wpa_supplicant
+    symlink /data/misc/wifi/wpa_supplicant /data/system/wpa_supplicant
 
-    # GPS team does not plan to use the wiperiface service
-    # Create directories for wiper services
-    # mkdir /data/wpstiles/ 0755 shell
-    # mkdir /data/wiper 0755 location qcom_oncrpc
+    #Create directories for wiper services
+    #mkdir /data/wpstiles/ 0755 shell
+    #mkdir /data/wiper 0755 gps qcom_oncrpc
 
     #Create directories for gpsone_daemon services
-    mkdir /data/misc/gpsone_d 0770 system system
+    mkdir /data/misc/gpsone_d 0770 system gps
 
     #Create directories for QuIPS
     mkdir /data/misc/quipc 0770 gps system
@@ -181,6 +201,7 @@ on post-fs-data
     #Create directories for Location services
     mkdir /data/misc/location 0770 gps gps
     mkdir /data/misc/location/mq 0770 gps gps
+    mkdir /data/misc/location/xtwifi 0770 gps gps
 
     #Create directory from IMS services
     mkdir /data/shared 0755
@@ -190,34 +211,37 @@ on post-fs-data
     mkdir /data/fota 0771
     chown system system /data/fota
 
+    #Provide the access to hostapd.conf only to root and group
+    chmod 0660 /data/misc/wifi/hostapd.conf
+
     # Create /data/time folder for time-services
     mkdir /data/time/ 0700 system system
 
-    # we will remap this as /mnt/sdcard with the sdcard fuse tool
-    mkdir /data/media 0775 media_rw media_rw
-    chown media_rw media_rw /data/media
+    mkdir /data/audio/ 0770 media audio
+    # Enable the setgid bit on the directory
+    chmod 2770 /data/audio
 
     setprop vold.post_fs_data_done 1
 
-    # chown WCNSS_qcom_wlan_nv.bin to wifi
-    chown wifi wifi /persist/WCNSS_qcom_wlan_nv.bin
-    chmod 0660 /persist/WCNSS_qcom_wlan_nv.bin
-
 # Export GPIO56 for fusion targets to enable/disable hub
-# service usbhub_init /system/bin/usbhub_init
-#    class late_start
-#    user root
-#    disabled
-#    oneshot
+service usbhub_init /system/bin/usbhub_init
+   class late_start
+   user root
+   disabled
+   oneshot
 
-# on property:ro.board.platform=msm7630_fusion
-#     start usbhub_init
+on property:init.svc.surfaceflinger=stopped
+    stop ppd
+    stop hdmid
+
+on property:ro.board.platform=msm7630_fusion
+    start usbhub_init
 
 on property:init.svc.wpa_supplicant=stopped
     stop dhcpcd
 
 on property:bluetooth.isEnabled=true
-#    start btwlancoex
+    start btwlancoex
     write /sys/class/bluetooth/hci0/idle_timeout 7000
 
 service qcom-c_core-sh /system/bin/sh /init.qcom.class_core.sh
@@ -233,7 +257,15 @@ service qcom-c_main-sh /system/bin/sh /init.qcom.class_main.sh
 on property:vold.decrypt=trigger_restart_framework
     start qcom-c_main-sh
 
-service rmt_storage /system/bin/rmt_storage /dev/block/mmcblk0p10 /dev/block/mmcblk0p11 /dev/block/mmcblk0p17
+service cnd /system/bin/cnd
+    class late_start
+    socket cnd stream 666 root radio
+    disabled
+
+on property:persist.cne.feature=1
+    start cnd
+
+service rmt_storage /system/bin/rmt_storage
     class core
     user root
     disabled
@@ -248,6 +280,13 @@ service hciattach /system/bin/sh /system/etc/init.qcom.bt.sh
     disabled
     oneshot
 
+service hciattach_ath3k /system/bin/sh /system/etc/init.ath3k.bt.sh
+     class late_start
+     user bluetooth
+     group system bluetooth net_bt_admin misc
+     disabled
+     oneshot
+
 service bt-dun /system/bin/dun-server /dev/smd7 /dev/rfcomm0
     class late_start
     user bluetooth
@@ -255,10 +294,17 @@ service bt-dun /system/bin/dun-server /dev/smd7 /dev/rfcomm0
     disabled
     oneshot
 
+service bt-sap /system/bin/sapd 15
+    user bluetooth
+    group bluetooth net_bt_admin
+    class late_start
+    disabled
+    oneshot
+
 service bridgemgrd /system/bin/bridgemgrd
     class late_start
     user radio
-    group radio
+    group radio qcom_diag
     disabled
 
 service port-bridge /system/bin/port-bridge /dev/smd0 /dev/ttyGS0
@@ -267,28 +313,24 @@ service port-bridge /system/bin/port-bridge /dev/smd0 /dev/ttyGS0
     group system inet
     disabled
 
-on property:ro.baseband="msm"
-    # Enable BT-DUN only for all msms
-    setprop ro.qualcomm.bluetooth.dun true
-
 service qmiproxy /system/bin/qmiproxy
     class main
     user radio
-    group radio
+    group radio qcom_diag
     disabled
 
 # QMUX must be in multiple groups to support external process connections
 service qmuxd /system/bin/qmuxd
     class main
     user radio
-    group radio audio bluetooth
+    group radio audio bluetooth gps qcom_diag
     disabled
 
 service netmgrd /system/bin/netmgrd
     class main
     disabled
 
-service sensors /system/bin/sensorsqcomwrapper.sh
+service sensors /system/bin/sensors.qcom
     class late_start
     user root
     group root
@@ -303,63 +345,91 @@ on property:ro.use_data_netmgrd=false
 on property:ro.data.large_tcp_window_size=true
     write /proc/sys/net/ipv4/tcp_adv_win_scale  1
 
-#service btwlancoex /system/bin/sh /system/etc/init.qcom.coex.sh
-#    class late_start
-#    user bluetooth
-#    group bluetooth net_bt_admin inet net_admin net_raw
-#    disabled
-#    oneshot
+service btwlancoex /system/bin/sh /system/etc/init.qcom.coex.sh
+    class late_start
+    user bluetooth
+    group bluetooth net_bt_admin inet net_admin net_raw
+    disabled
+    oneshot
 
-service dhcpcd_wlan0 /system/bin/logwrapper /system/bin/dhcpcd -B -d -t 30
+service amp_init /system/bin/amploader -i
+    class late_start
+    user root
+    disabled
+    oneshot
+
+service amp_load /system/bin/amploader -l 7000
+    class late_start
+    user root
+    disabled
+    oneshot
+
+service amp_unload /system/bin/amploader -u
+    class late_start
+    user root
+    disabled
+    oneshot
+
+service p2p_supplicant /system/bin/logwrapper /system/bin/wpa_supplicant \
+    -ip2p0 -Dnl80211 -c/data/misc/wifi/p2p_supplicant.conf -N \
+    -iwlan0 -Dnl80211 -c/data/misc/wifi/wpa_supplicant.conf -dddd \
+    -e/data/misc/wifi/entropy.bin -puse_p2p_group_interface=1
+    #   we will start as root and wpa_supplicant will switch to user wifi
+    #   after setting up the capabilities required for WEXT
+    #   user wifi
+    #   group wifi inet keystore
+    class main
+    socket wpa_wlan0 dgram 660 wifi wifi
+    disabled
+    oneshot
+
+service wpa_supplicant /system/bin/logwrapper /system/bin/wpa_supplicant \
+    -iwlan0 -Dnl80211 -c/data/misc/wifi/wpa_supplicant.conf -dddd \
+    -e/data/misc/wifi/entropy.bin
+    #   we will start as root and wpa_supplicant will switch to user wifi
+    #   after setting up the capabilities required for WEXT
+    #   user wifi
+    #   group wifi inet keystore
+    class main
+    socket wpa_wlan0 dgram 660 wifi wifi
+    disabled
+    oneshot
+
+service dhcpcd_wlan0 /system/bin/dhcpcd
     class late_start
     disabled
     oneshot
 
-service dhcpcd_p2p /system/bin/logwrapper /system/bin/dhcpcd -BKLG -d
+service dhcpcd_p2p /system/bin/dhcpcd -G
     class late_start
     disabled
     oneshot
 
-service dhcpcd_usbeth0 /system/bin/logwrapper /system/bin/dhcpcd -BKLG -d
+service iprenew_wlan0 /system/bin/dhcpcd -nBK
     class late_start
     disabled
     oneshot
 
-service iprenew_usbeth0 /system/bin/dhcpcd -nBK
+service iprenew_p2p /system/bin/dhcpcd -nBK p2p
     class late_start
     disabled
     oneshot
 
-service iprenew_wlan0 /system/bin/logwrapper /system/bin/dhcpcd -n
-    class late_start
+service dhcpcd_bnep0 /system/bin/dhcpcd -G
     disabled
     oneshot
 
-service iprenew_p2p /system/bin/logwrapper /system/bin/dhcpcd -n -d
-    class late_start
-    disabled
-    oneshot
-
-service dhcpcd_bnep0 /system/bin/dhcpcd -B -t 30
-    class late_start
-    disabled
-    oneshot
-
-service iprenew_bnep0 /system/bin/dhcpcd -n
-    class late_start
-    disabled
-    oneshot
-
-# GPS team does not plan to use the wiperiface service
+# Service not used
 #service wiperiface /system/bin/wiperiface
-#    user location
-#    group qcom_oncrpc
+#    class late_start
+#    user gps
+#    group gps qcom_oncrpc net_raw
 #    oneshot
 
 service gpsone_daemon /system/bin/gpsone_daemon
     class late_start
-    user system
-    group system qcom_oncrpc inet
+    user gps
+    group gps qcom_oncrpc inet net_raw
     disabled
 
 service quipc_igsn /system/bin/quipc_igsn
@@ -369,6 +439,24 @@ service quipc_igsn /system/bin/quipc_igsn
     disabled
 
 service quipc_main /system/bin/quipc_main
+    class late_start
+    user gps
+    group gps net_admin wifi inet
+    disabled
+
+service location_mq /system/bin/location-mq
+    class late_start
+    user gps
+    group gps
+    disabled
+
+service xtwifi_inet /system/bin/xtwifi-inet-agent
+    class late_start
+    user gps
+    group inet gps
+    disabled
+
+service xtwifi_client /system/bin/xtwifi-client
     class late_start
     user gps
     group net_admin wifi inet gps
@@ -389,6 +477,18 @@ on property:crypto.driver.load=0
      exec /system/bin/rmmod qcedev.ko
      exec /system/bin/rmmod qce.ko
 
+service drmdiag /system/bin/drmdiagapp
+    class late_start
+     user root
+     disabled
+     oneshot
+
+on property:drmdiag.load=1
+    start drmdiag
+
+on property:drmdiag.load=0
+    stop drmdiag
+
 service qcom-sh /system/bin/sh /init.qcom.sh
     class late_start
     user root
@@ -400,9 +500,15 @@ service qcom-post-boot /system/bin/sh /system/etc/init.qcom.post_boot.sh
     disabled
     oneshot
 
+service wifi-sdio-on /system/bin/sh /system/etc/init.qcom.sdio.sh
+    class late_start
+    group wifi inet
+    disabled
+    oneshot
+
+
 on property:sys.boot_completed=1
     start qcom-post-boot
-    start loadpreinstalls
 
 service atfwd /system/bin/ATFWD-daemon
     class late_start
@@ -413,8 +519,6 @@ service atfwd /system/bin/ATFWD-daemon
 service hdmid /system/bin/hdmid
     class late_start
     socket hdmid stream 0660 root system graphics
-    user system
-    group system graphics
     disabled
 
 service ppd /system/bin/mm-pp-daemon
@@ -462,6 +566,12 @@ service time_daemon /system/bin/time_daemon
 on property:persist.timed.enable=true
     start time_daemon
 
+# Service not used
+#service battery_monitor /system/bin/battery_monitor
+#    user system
+#    group system
+#    disabled
+
 service ril-daemon1 /system/bin/rild -c 1
     class main
     socket rild1 stream 660 root radio
@@ -470,21 +580,25 @@ service ril-daemon1 /system/bin/rild -c 1
     disabled
     group radio cache inet misc audio sdcard_r sdcard_rw qcom_oncrpc diag qcom_diag log
 
-# MOT: used only on Qualcomm Fluid target
-#service profiler_daemon /system/bin/profiler_daemon
-#    class late_start
-#    user root
-#    group root
-#    disabled
+service profiler_daemon /system/bin/profiler_daemon
+    class late_start
+    user root
+    group root
+    disabled
 
-# daemon will drop to user/group system/media_rw after initializing
-# underlying files in /data/media will be created with user and group media_rw (1023)
-    service sdcard /system/bin/sdcard /data/media 1023 1023
+service sdcard /system/bin/sdcard /data/media 1023 1023
     class late_start
     disabled
 
-on property:persist.fuse_sdcard=true
+on property:ro.fuse_sdcard=true
     start sdcard
+
+# This will make sure that sdcard service starts as late_start.
+on nonencrypted
+    setprop ro.fuse_sdcard ${persist.fuse_sdcard}
+
+on property:vold.decrypt=trigger_restart_framework
+    setprop ro.fuse_sdcard ${persist.fuse_sdcard}
 
 service hcidump /system/bin/sh /system/etc/hcidump.sh
     user bluetooth
@@ -492,9 +606,14 @@ service hcidump /system/bin/sh /system/etc/hcidump.sh
     disabled
     oneshot
 
-service loadpreinstalls /system/bin/logwrapper /system/bin/loadpreinstalls.sh
-    class late_start
-    user system
-    group system
-    disabled
-    oneshot
+#comment this and start  MOTO specific charge_only_mode.
+#(See /device/moto/mot8960/init.target.rc for details).
+#service charger /charger
+#    class charger
+
+# Restart adbd so it can run as root
+on property:service.adb.root=1
+    write /sys/class/android_usb/android0/enable 0
+    restart adbd
+    write /sys/class/android_usb/android0/enable 1
+

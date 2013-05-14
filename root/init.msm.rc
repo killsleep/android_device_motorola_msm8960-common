@@ -5,7 +5,7 @@ on boot
 # this common init.msm.rc file for all 8960 products.
 #   ReadMin, ReadInitial, ReadMax, WriteMin, WriteInitial, WriteMax,
     setprop net.tcp.buffersize.default 131072,262144,524288,4096,16384,131072
-    setprop net.tcp.buffersize.wifi 131072,262144,3461120,4096,221184,3461120
+    setprop net.tcp.buffersize.wifi 131072,262144,1572864,4096,221184,1572864
     setprop net.tcp.buffersize.umts 131072,262144,726016,4096,16384,199680
     setprop net.tcp.buffersize.edge 16384,32768,65536,4096,16384,32768
     setprop net.tcp.buffersize.gprs 4096,8192,12288,4096,8192,12288
