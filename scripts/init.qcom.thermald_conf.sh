@@ -1,4 +1,5 @@
-# Copyright (c) 2011, Code Aurora Forum. All rights reserved.
+#!/system/bin/sh
+# Copyright (c) 2012, Code Aurora Forum. All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are
@@ -24,15 +25,32 @@
 # WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+#
 
-dev_mount sdcard /storage/sdcard1 auto /devices/platform/msm_sdcc.3/mmc_host
+# No path is set up at this point so we have to do it here.
+PATH=/sbin:/system/sbin:/system/bin:/system/xbin
+export PATH
 
+THERMALD_CONF_SYMLINK=/etc/thermald.conf
 
-dev_mount usbdisk_1.1.1 /storage/usbdisk_1.1.1 auto /devices/platform/msm_hsusb_host/usb1/1-1/1-1:1.0
-dev_mount usbdisk_1.1 /storage/usbdisk_1.1 auto /devices/platform/msm_hsusb_host/usb1/1-1/1-1.1
-dev_mount usbdisk_1.2 /storage/usbdisk_1.2 auto /devices/platform/msm_hsusb_host/usb1/1-1/1-1.2
-dev_mount usbdisk_1.3 /storage/usbdisk_1.3 auto /devices/platform/msm_hsusb_host/usb1/1-1/1-1.3
-dev_mount usbdisk_1.4 /storage/usbdisk_1.4 auto /devices/platform/msm_hsusb_host/usb1/1-1/1-1.4
-dev_mount usbdisk_1.5 /storage/usbdisk_1.5 auto /devices/platform/msm_hsusb_host/usb1/1-1/1-1.5
-dev_mount usbdisk_1.6 /storage/usbdisk_1.6 auto /devices/platform/msm_hsusb_host/usb1/1-1/1-1.6
-dev_mount usbdisk_1.7 /storage/usbdisk_1.7 auto /devices/platform/msm_hsusb_host/usb1/1-1/1-1.7
+# symlink already exists, exit
+if [ -h $THERMALD_CONF_SYMLINK ]; then
+	exit 0
+fi
+
+# create symlink to target-specific config file
+platformid=`cat /sys/devices/system/soc/soc0/id`
+case "$platformid" in
+    "109" | "130") #APQ/MPQ8064
+    ln -s /etc/thermald-8064.conf $THERMALD_CONF_SYMLINK 2>/dev/null
+    ;;
+
+    "116" | "117" | "118" | "119") #MSM8930
+    ln -s /etc/thermald-8930.conf $THERMALD_CONF_SYMLINK 2>/dev/null
+    ;;
+
+    *) #MSM8960, etc
+    ln -s /etc/thermald-8960.conf $THERMALD_CONF_SYMLINK 2>/dev/null
+    ;;
+esac

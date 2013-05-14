@@ -149,6 +149,11 @@ $(LOCAL_PATH)/scripts/init.qcom.modem_links.sh:system/etc/init.qcom.modem_links.
 $(LOCAL_PATH)/scripts/init.qcom.post_boot.sh:system/etc/init.qcom.post_boot.sh \
 $(LOCAL_PATH)/scripts/qcamerasrvwrapper.sh:system/bin/qcamerasrvwrapper.sh \
 $(LOCAL_PATH)/scripts/sensorsqcomwrapper.sh:system/bin/sensorsqcomwrapper.sh \
+$(LOCAL_PATH)/scripts/init.ath3k.bt.sh:system/bin/init.ath3k.bt.sh \
+$(LOCAL_PATH)/scripts/init.qcom.efs.sync.sh:system/bin/init.qcom.efs.sync.sh \
+$(LOCAL_PATH)/scripts/init.qcom.sdio.sh:system/bin/init.qcom.sdio.sh \
+$(LOCAL_PATH)/scripts/init.qcom.thermald_conf.sh:system/bin/init.qcom.thermald_conf.sh \
+$(LOCAL_PATH)/scripts/init.qcom.wifi.sh:system/bin/init.qcom.wifi.sh \
 $(LOCAL_PATH)/scripts/mount_pds.sh:system/bin/mount_pds.sh
 
 #media
@@ -159,7 +164,10 @@ $(LOCAL_PATH)/config/media_codecs.xml:system/etc/media_codecs.xml
 
 #audio
 PRODUCT_COPY_FILES += \
+$(LOCAL_PATH)/config/snd_soc_msm:system/etc/snd_soc_msm/snd_soc_msm
 $(LOCAL_PATH)/config/snd_soc_msm_2x:system/etc/snd_soc_msm/snd_soc_msm_2x
+$(LOCAL_PATH)/config/snd_soc_msm_2x_Fusion3:system/etc/snd_soc_msm/snd_soc_msm_2x_Fusion3
+$(LOCAL_PATH)/config/snd_soc_msm_Sitar:system/etc/snd_soc_msm/snd_soc_msm_Sitar
 
 #config
 PRODUCT_COPY_FILES += \
