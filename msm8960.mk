@@ -287,6 +287,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
 
 # Radio and Telephony
 PRODUCT_PROPERTY_OVERRIDES += \
+    ro.telephony.ril_class=MotorolaQualcommRIL \
     keyguard.no_require_sim=true \
     ro.use_data_netmgrd=true \
     ro.ril.transmitpower=true \
