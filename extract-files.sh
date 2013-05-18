@@ -13,7 +13,7 @@ export VENDORDEVICEDIR
 BASE=../../../vendor/$VENDOR/$VENDORDEVICEDIR/proprietary
 rm -rf $BASE/*
 rm -rf $BASE/../packages 2> /dev/null
-for FILE in `cat ../msm8960-common/proprietary-files.txt | grep -v ^# | cut -f1 -d '#' | grep -v ^$`; do
+for FILE in `cat ../msm8960-common/common-proprietary-files.txt | grep -v ^# | cut -f1 -d '#' | grep -v ^$`; do
     DIR=`dirname $FILE`
     if [ ! -d $BASE/$DIR ]; then
         mkdir -p $BASE/$DIR
@@ -22,10 +22,6 @@ for FILE in `cat ../msm8960-common/proprietary-files.txt | grep -v ^# | cut -f1 
         adb pull /system/$FILE $BASE/$FILE
     else
         cp -p "$COPY_FROM/$FILE" $BASE/$FILE
-    fi
-    if [ "X$DIR" == "Xapp" ]; then
-        mkdir -p ${BASE}/../packages
-        mv $BASE/$FILE ${BASE}/../packages/
     fi
 done
 for FILE in `cat ../${DEVICE}/proprietary-files.txt | grep -v ^# | cut -f1 -d '#' | grep -v ^$`; do
@@ -38,11 +34,11 @@ for FILE in `cat ../${DEVICE}/proprietary-files.txt | grep -v ^# | cut -f1 -d '#
     else
         cp -p "$COPY_FROM/$FILE" $BASE/$FILE
     fi
-    if [ "X$DIR" == "Xapp" ]; then
-        mkdir -p ${BASE}/../packages
-        mv $BASE/$FILE ${BASE}/../packages/
-    fi
 done
+    if [ -d $BASE/app ]; then
+        mkdir -p ${BASE}/../packages
+        mv $BASE/app/* ${BASE}/../packages/
+    fi
 rmdir ${BASE}/app 2> /dev/null
 
 
