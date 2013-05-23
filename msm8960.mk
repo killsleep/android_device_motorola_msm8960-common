@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-LOCAL_PATH := device/motorola/msm8960-common
+LOCAL_PATH := device/pantech/msm8960-common
 # Permissions
 PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/handheld_core_hardware.xml:system/etc/permissions/handheld_core_hardware.xml \
@@ -288,7 +288,7 @@ PRODUCT_PROPERTY_OVERRIDES += \
 
 # Radio and Telephony
 PRODUCT_PROPERTY_OVERRIDES += \
-    ro.telephony.ril_class=MotorolaQualcommRIL \
+    ro.telephony.ril_class=PantechQualcommRIL \
     keyguard.no_require_sim=true \
     ro.use_data_netmgrd=true \
     ro.ril.transmitpower=true \
@@ -298,7 +298,8 @@ PRODUCT_PROPERTY_OVERRIDES += \
     persist.audio.vr.enable=false \
     ro.qc.sdk.audio.fluencetype=fluence \
     persist.audio.handset.mic=digital \
-    ro.config.vc_call_vol_steps=7 
+    ro.config.vc_call_vol_steps=7 \
+    persist.timed.enable=true
 
 # Wifi
 PRODUCT_PROPERTY_OVERRIDES += \
